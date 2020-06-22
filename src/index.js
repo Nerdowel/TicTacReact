@@ -1,6 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
+import { Provider, connect } from 'react-redux'
+import { createStore } from 'redux'
 import './index.css';
+
 function Square(props) {
       return (
         <button 
@@ -50,7 +53,6 @@ function Square(props) {
                 squares: Array(9).fill(null),
             }],
             stepNumber: 0,
-            xIsNext: true,
         };
     }
     handleClick(i){
@@ -60,14 +62,14 @@ function Square(props) {
         if (calculateWinner(squares) || squares[i]){
             return;
         }
-        squares[i] = this.state.xIsNext ? "X" : "O";
+        squares[i] = this.props.next.xIsNext ? "X" : "O";
+        this.props.next.xIsNext ? this.props.isOReallyNext() : this.props.isXReallyNext();
         this.setState(
             {
                 history: history.concat([{
                     squares: squares,
                 }]),
                 stepNumber: history.length,
-                xIsNext: !this.state.xIsNext,
             }
         );
     }
@@ -97,7 +99,7 @@ function Square(props) {
         if (winner){
             status = "Winner: " + winner;
         }else{
-            status = "Next player: " + (this.state.xIsNext ? "X" : "O");
+            status = "Next player: " + (this.props.next.xIsNext ? "X" : "O");
         }
       return (
         <div className="game">
@@ -136,9 +138,78 @@ function Square(props) {
   }
   
   // ========================================
-  
+ /* 
+ const WINNER = 'WINNER';
+  const declareWinner = (status) =>{
+    return {
+      type: WINNER,
+    }
+  };
+  const winnerReducer = (state = {}, action) =>{
+    switch(action.type){
+      
+    }
+  };
+    this.state = {
+            history: [{
+                squares: Array(9).fill(null),
+            }],
+            stepNumber: 0,
+            xIsNext: true,
+        };
+  */
+
+  //Constants
+  const XISNEXT = 'XISNEXT';
+  const OISNEXT = 'OISNEXT'
+  // const NEXTSTEP = 'NEXTSTEP';
+  //Action Events
+  const isXNext = () => {
+    return {
+      type: XISNEXT,
+    }
+  };
+  const isONext = () => {
+    return{
+      type: OISNEXT
+    }
+  }
+  //Reducers
+  const isXNextReducer = (state = {xIsNext: true}, action) => {
+    switch(action.type) {
+      case XISNEXT:
+        return ({xIsNext: true});
+      case OISNEXT:
+        return ({xIsNext: false})
+      default:
+        return state;
+    }
+  };
+  //MapToProps
+  const mapStateToProps = (state) => {
+    return {
+      next: state
+    }
+  };
+  const mapDispatchToProps = (dispatch) => {
+    return {
+      isXReallyNext: () => {
+        dispatch(isXNext())
+      },
+      isOReallyNext: () => {
+        dispatch(isONext())
+      },
+    }
+  };
+  //Connecting
+  const Container = connect(mapStateToProps,mapDispatchToProps)(Game);
+  //Store
+  const store = createStore(isXNextReducer);
+
   ReactDOM.render(
-    <Game />,
+    <Provider store = {store}>
+        <Container />
+        </Provider>,
     document.getElementById('root')
   );
   
