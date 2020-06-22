@@ -46,17 +46,8 @@ function Square(props) {
   }
   
   class Game extends React.Component {
-    constructor(props){
-        super(props);
-        this.state = {
-            history: [{
-                squares: Array(9).fill(null),
-            }],
-            stepNumber: 0,
-        };
-    }
     handleClick(i){
-        const history = this.state.history.slice(0, this.props.stepCount+1);
+        const history = this.props.hist.slice(0, this.props.stepCount+1);
         const current = history[history.length-1]
         const squares = current.squares.slice();
         if (calculateWinner(squares) || squares[i]){
@@ -65,20 +56,16 @@ function Square(props) {
         squares[i] = this.props.next ? "X" : "O";
         this.props.next ? this.props.isOReallyNext() : this.props.isXReallyNext();
         this.props.setNewStep(history.length);
-        this.setState(
-            {
-                history: history.concat([{
-                    squares: squares,
-                }]),
-            }
-        );
+        this.props.newHistory(squares);
     }
+
     jumpTo(step){
       this.props.setNewStep(step);
       step%2 === 0 ? this.props.isXReallyNext() : this.props.isOReallyNext();
     }
+
     render() {
-        const history = this.state.history;
+        const history = this.props.hist;
         const current = history[this.props.stepCount];
         const winner = calculateWinner(current.squares);
         
@@ -142,6 +129,7 @@ function Square(props) {
   const OISNEXT = 'OISNEXT'
   const STEPINCREMENT = 'STEPINCREMENT';
   const STEPSET = 'STEPSET';
+  const NEWHISTORY = 'NEWHISTORY';
   //Action Events
   const isXNext = () => {
     return {
@@ -162,6 +150,12 @@ function Square(props) {
     return{
       type: STEPSET,
       stepIndex: i,
+    }
+  };
+  const createHistory = (sq) => {
+    return {
+      type: NEWHISTORY,
+      squares: sq,
     }
   };
   //Reducers
@@ -186,11 +180,25 @@ function Square(props) {
         return state;
     }
   };
+  
+  const historyReducer = (state = {
+    history: [
+      {squares: Array(9).fill(null),}],}, action) => {
+    switch(action.type){
+      case NEWHISTORY:
+        return {
+          history: [...state.history,{squares: action.squares}]
+        }
+      default:
+        return state;
+    }
+  };
   //MapToProps
   const mapStateToProps = (state) => {
     return {
       next: state.xReducer.xIsNext,
       stepCount: state.stepReducer.stepNumber,
+      hist: state.histReducer.history
     }
   };
   const mapDispatchToProps = (dispatch) => {
@@ -207,6 +215,9 @@ function Square(props) {
       setNewStep: (i) => {
         dispatch(setStep(i))
       },
+      newHistory: (sq) => {
+        dispatch(createHistory(sq))
+      },
     }
   };
   //Connecting
@@ -215,6 +226,7 @@ function Square(props) {
   const rootReducer = combineReducers({
     xReducer: isXNextReducer,
     stepReducer: nextStepReducer,
+    histReducer: historyReducer,
   });
   //Store
   const store = createStore(rootReducer);
