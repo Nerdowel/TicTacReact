@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { Provider, connect } from 'react-redux'
-import { createStore } from 'redux'
+import { createStore,combineReducers } from 'redux'
 import './index.css';
 
 function Square(props) {
@@ -56,32 +56,30 @@ function Square(props) {
         };
     }
     handleClick(i){
-        const history = this.state.history.slice(0, this.state.stepNumber+1);
+        const history = this.state.history.slice(0, this.props.stepCount+1);
         const current = history[history.length-1]
         const squares = current.squares.slice();
         if (calculateWinner(squares) || squares[i]){
             return;
         }
-        squares[i] = this.props.next.xIsNext ? "X" : "O";
-        this.props.next.xIsNext ? this.props.isOReallyNext() : this.props.isXReallyNext();
+        squares[i] = this.props.next ? "X" : "O";
+        this.props.next ? this.props.isOReallyNext() : this.props.isXReallyNext();
+        this.props.setNewStep(history.length);
         this.setState(
             {
                 history: history.concat([{
                     squares: squares,
                 }]),
-                stepNumber: history.length,
             }
         );
     }
     jumpTo(step){
-        this.setState({
-            stepNumber: step,
-            xIsNext: (step % 2) === 0,
-        })
+      this.props.setNewStep(step);
+      step%2 === 0 ? this.props.isXReallyNext() : this.props.isOReallyNext();
     }
     render() {
         const history = this.state.history;
-        const current = history[this.state.stepNumber];
+        const current = history[this.props.stepCount];
         const winner = calculateWinner(current.squares);
         
         const moves = history.map((step,move) => {
@@ -99,7 +97,7 @@ function Square(props) {
         if (winner){
             status = "Winner: " + winner;
         }else{
-            status = "Next player: " + (this.props.next.xIsNext ? "X" : "O");
+            status = "Next player: " + (this.props.next ? "X" : "O");
         }
       return (
         <div className="game">
@@ -138,31 +136,12 @@ function Square(props) {
   }
   
   // ========================================
- /* 
- const WINNER = 'WINNER';
-  const declareWinner = (status) =>{
-    return {
-      type: WINNER,
-    }
-  };
-  const winnerReducer = (state = {}, action) =>{
-    switch(action.type){
-      
-    }
-  };
-    this.state = {
-            history: [{
-                squares: Array(9).fill(null),
-            }],
-            stepNumber: 0,
-            xIsNext: true,
-        };
-  */
 
   //Constants
   const XISNEXT = 'XISNEXT';
   const OISNEXT = 'OISNEXT'
-  // const NEXTSTEP = 'NEXTSTEP';
+  const STEPINCREMENT = 'STEPINCREMENT';
+  const STEPSET = 'STEPSET';
   //Action Events
   const isXNext = () => {
     return {
@@ -173,14 +152,36 @@ function Square(props) {
     return{
       type: OISNEXT
     }
-  }
+  };
+  const nextStep = () => {
+    return{
+      type: STEPINCREMENT,
+    }
+  };
+  const setStep = (i) => {
+    return{
+      type: STEPSET,
+      stepIndex: i,
+    }
+  };
   //Reducers
   const isXNextReducer = (state = {xIsNext: true}, action) => {
     switch(action.type) {
       case XISNEXT:
         return ({xIsNext: true});
       case OISNEXT:
-        return ({xIsNext: false})
+        return ({xIsNext: false});
+      default:
+        return state;
+    }
+  };
+
+  const nextStepReducer = (state = {stepNumber: 0}, action) => {
+    switch(action.type) {
+      case STEPINCREMENT:
+        return  {stepNumber: state.stepNumber+1};
+      case STEPSET:
+        return {stepNumber: action.stepIndex};
       default:
         return state;
     }
@@ -188,7 +189,8 @@ function Square(props) {
   //MapToProps
   const mapStateToProps = (state) => {
     return {
-      next: state
+      next: state.xReducer.xIsNext,
+      stepCount: state.stepReducer.stepNumber,
     }
   };
   const mapDispatchToProps = (dispatch) => {
@@ -199,12 +201,23 @@ function Square(props) {
       isOReallyNext: () => {
         dispatch(isONext())
       },
+      increaseStepCount: () => {
+        dispatch(nextStep())
+      },
+      setNewStep: (i) => {
+        dispatch(setStep(i))
+      },
     }
   };
   //Connecting
   const Container = connect(mapStateToProps,mapDispatchToProps)(Game);
+  // Combining reducers
+  const rootReducer = combineReducers({
+    xReducer: isXNextReducer,
+    stepReducer: nextStepReducer,
+  });
   //Store
-  const store = createStore(isXNextReducer);
+  const store = createStore(rootReducer);
 
   ReactDOM.render(
     <Provider store = {store}>
