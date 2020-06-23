@@ -7,7 +7,7 @@ import './index.css';
 function Square(props) {
   return (
     <button
-      className="square"
+      className={props.win ? "winsquare": "square"}
       onClick={() => props.onClick()}>
       {props.value}
     </button>
@@ -18,6 +18,7 @@ class Board extends React.Component {
   renderSquare(i) {
     return (<Square
       value={this.props.squares[i]}
+      win={this.props.winners.includes(i)}
       onClick={() => this.props.onClick(i)}
     />);
   }
@@ -49,7 +50,7 @@ class Game extends React.Component {
   handleClick(i) {
     this.props.newHistory(this.props.stepCount)
     const history = this.props.hist;
-    const current = history[history.length-1]
+    const current = history[history.length - 1]
     const squares = current.squares.slice();
     if (calculateWinner(squares) || squares[i]) {
       return;
@@ -84,8 +85,10 @@ class Game extends React.Component {
     });
 
     let status;
+    let winSquares = [];
     if (winner) {
-      status = "Winner: " + winner;
+      status = "Winner: " + winner.winner;
+      winSquares = winner.winningSquares;
     } else {
       status = "Next player: " + (this.props.next ? "X" : "O");
     }
@@ -94,6 +97,7 @@ class Game extends React.Component {
         <div className="game-board">
           <Board
             squares={current.squares}
+            winners={winSquares}
             onClick={(i) => this.handleClick(i)} />
         </div>
         <div className="game-info">
@@ -119,7 +123,10 @@ function calculateWinner(squares) {
   for (let i = 0; i < lines.length; i++) {
     const [a, b, c] = lines[i];
     if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
-      return squares[a];
+      return {
+        winner: squares[a],
+        winningSquares: lines[i]
+      };
     }
   }
   return null;
@@ -197,7 +204,7 @@ const historyReducer = (state = {
 }, action) => {
   switch (action.type) {
     case NEWHISTORY:
-      return {history: (state.history.slice(0,action.index+1))}
+      return { history: (state.history.slice(0, action.index + 1)) }
     case ADDHISTORY:
       return {
         history: [...state.history, { squares: action.squares }]
@@ -211,7 +218,7 @@ const mapStateToProps = (state) => {
   return {
     next: state.xReducer.xIsNext,
     stepCount: state.stepReducer.stepNumber,
-    hist: state.histReducer.history
+    hist: state.histReducer.history,
   }
 };
 const mapDispatchToProps = (dispatch) => {
