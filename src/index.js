@@ -57,6 +57,7 @@ class Game extends React.Component {
     }
     squares[i] = this.props.next ? "X" : "O";
     this.props.addToHistory(squares);
+    console.log('Before' +this.props.stepCount)
     this.props.setNewStep(history.length);
     this.props.next ? this.props.isOReallyNext() : this.props.isXReallyNext();
 
